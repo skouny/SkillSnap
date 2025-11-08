@@ -1,27 +1,50 @@
+@inject SkillService SkillService
 @* SkillTags Component - Displays skills in a tag-style layout *@
 
 <div class="skill-tags">
     <h3>My Skills</h3>
-    <div class="tags-container">
-        @foreach (var skill in Skills)
-        {
-            <span class="skill-tag @GetLevelClass(skill.Level)">
-                <strong>@skill.Name</strong> - @skill.Level
-            </span>
-        }
-    </div>
+    
+    @if (isLoading)
+    {
+        <p class="loading-message">Loading skills...</p>
+    }
+    else if (skills == null || !skills.Any())
+    {
+        <p class="no-data-message">No skills found. Add some skills to showcase your expertise!</p>
+    }
+    else
+    {
+        <div class="tags-container">
+            @foreach (var skill in skills)
+            {
+                <span class="skill-tag @GetLevelClass(skill.Level)">
+                    <strong>@skill.Name</strong> - @skill.Level
+                </span>
+            }
+        </div>
+    }
 </div>
 
 @code {
-    private List<SkillItem> Skills = new()
+    private List<Skill>? skills;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
     {
-        new SkillItem { Name = "C#", Level = "Advanced" },
-        new SkillItem { Name = "Blazor", Level = "Intermediate" },
-        new SkillItem { Name = "ASP.NET Core", Level = "Advanced" },
-        new SkillItem { Name = "JavaScript", Level = "Intermediate" },
-        new SkillItem { Name = "SQL", Level = "Advanced" },
-        new SkillItem { Name = "Git", Level = "Intermediate" }
-    };
+        try
+        {
+            skills = await SkillService.GetSkillsAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading skills: {ex.Message}");
+            skills = new List<Skill>();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
 
     private string GetLevelClass(string level)
     {
@@ -32,12 +55,6 @@
             "beginner" => "level-beginner",
             _ => ""
         };
-    }
-
-    public class SkillItem
-    {
-        public string Name { get; set; } = string.Empty;
-        public string Level { get; set; } = string.Empty;
     }
 }
 
@@ -88,9 +105,14 @@
         background-color: #d1ecf1;
         color: #0c5460;
         border: 1px solid #bee5eb;
+    }    .skill-tag strong {
+        font-weight: 600;
     }
 
-    .skill-tag strong {
-        font-weight: 600;
+    .loading-message, .no-data-message {
+        text-align: center;
+        color: #666;
+        font-size: 1.1rem;
+        padding: 2rem;
     }
 </style>
