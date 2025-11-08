@@ -13,9 +13,7 @@ namespace SkillSnap.Api.Controllers
         public PortfolioUsersController(SkillSnapContext context)
         {
             _context = context;
-        }
-
-        /// <summary>
+        }        /// <summary>
         /// Get all portfolio users with their projects and skills
         /// </summary>
         [HttpGet]
@@ -26,6 +24,7 @@ namespace SkillSnap.Api.Controllers
                 var users = await _context.PortfolioUsers
                     .Include(u => u.Projects)
                     .Include(u => u.Skills)
+                    .AsNoTracking() // Optimization: no change tracking needed
                     .ToListAsync();
                 return Ok(users);
             }
@@ -46,6 +45,7 @@ namespace SkillSnap.Api.Controllers
                 var user = await _context.PortfolioUsers
                     .Include(u => u.Projects)
                     .Include(u => u.Skills)
+                    .AsNoTracking() // Optimization: no change tracking needed
                     .FirstOrDefaultAsync(u => u.Id == id);
 
                 if (user == null)

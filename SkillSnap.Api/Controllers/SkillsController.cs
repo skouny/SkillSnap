@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using SkillSnap.Api.Models;
 
 namespace SkillSnap.Api.Controllers
@@ -10,13 +11,16 @@ namespace SkillSnap.Api.Controllers
     public class SkillsController : ControllerBase
     {
         private readonly SkillSnapContext _context;
+        private readonly IMemoryCache _cache;
+        private readonly ILogger<SkillsController> _logger;
+        private const string SkillsCacheKey = "skills_list";
 
-        public SkillsController(SkillSnapContext context)
+        public SkillsController(SkillSnapContext context, IMemoryCache cache, ILogger<SkillsController> logger)
         {
             _context = context;
-        }
-
-        /// <summary>
+            _cache = cache;
+            _logger = logger;
+        }        /// <summary>
         /// Get all skills with their associated portfolio user
         /// </summary>
         [HttpGet]
@@ -24,18 +28,38 @@ namespace SkillSnap.Api.Controllers
         {
             try
             {
-                var skills = await _context.Skills
-                    .Include(s => s.PortfolioUser)
-                    .ToListAsync();
+                // Try to get from cache
+                if (!_cache.TryGetValue(SkillsCacheKey, out List<Skill>? skills))
+                {
+                    _logger.LogInformation("Cache miss - fetching skills from database");
+                    
+                    // Cache miss - fetch from database with optimized query
+                    skills = await _context.Skills
+                        .Include(s => s.PortfolioUser)
+                        .AsNoTracking() // Optimization: no change tracking needed for read-only queries
+                        .ToListAsync();
+                    
+                    // Set cache with 5 minute expiration
+                    var cacheOptions = new MemoryCacheEntryOptions
+                    {
+                        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
+                    };
+                    
+                    _cache.Set(SkillsCacheKey, skills, cacheOptions);
+                }
+                else
+                {
+                    _logger.LogInformation("Cache hit - returning cached skills");
+                }
+
                 return Ok(skills);
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error fetching skills");
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
-        }
-
-        /// <summary>
+        }        /// <summary>
         /// Get a specific skill by ID
         /// </summary>
         [HttpGet("{id}")]
@@ -45,6 +69,7 @@ namespace SkillSnap.Api.Controllers
             {
                 var skill = await _context.Skills
                     .Include(s => s.PortfolioUser)
+                    .AsNoTracking() // Optimization: no change tracking needed
                     .FirstOrDefaultAsync(s => s.Id == id);
 
                 if (skill == null)
@@ -56,11 +81,10 @@ namespace SkillSnap.Api.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error fetching skill {SkillId}", id);
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
-        }
-
-        /// <summary>
+        }        /// <summary>
         /// Create a new skill
         /// </summary>
         [HttpPost]
@@ -76,6 +100,7 @@ namespace SkillSnap.Api.Controllers
 
                 // Verify that the PortfolioUser exists
                 var userExists = await _context.PortfolioUsers
+                    .AsNoTracking()
                     .AnyAsync(u => u.Id == skill.PortfolioUserId);
 
                 if (!userExists)
@@ -86,15 +111,18 @@ namespace SkillSnap.Api.Controllers
                 _context.Skills.Add(skill);
                 await _context.SaveChangesAsync();
 
+                // Invalidate cache after creating
+                _cache.Remove(SkillsCacheKey);
+                _logger.LogInformation("Cache invalidated after creating skill {SkillId}", skill.Id);
+
                 return CreatedAtAction(nameof(GetSkill), new { id = skill.Id }, skill);
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error creating skill");
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
-        }
-
-        /// <summary>
+        }        /// <summary>
         /// Update an existing skill
         /// </summary>
         [HttpPut("{id}")]
@@ -125,15 +153,18 @@ namespace SkillSnap.Api.Controllers
 
                 await _context.SaveChangesAsync();
 
+                // Invalidate cache after updating
+                _cache.Remove(SkillsCacheKey);
+                _logger.LogInformation("Cache invalidated after updating skill {SkillId}", id);
+
                 return NoContent();
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error updating skill {SkillId}", id);
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
-        }
-
-        /// <summary>
+        }        /// <summary>
         /// Delete a skill
         /// </summary>
         [HttpDelete("{id}")]
@@ -151,10 +182,15 @@ namespace SkillSnap.Api.Controllers
                 _context.Skills.Remove(skill);
                 await _context.SaveChangesAsync();
 
+                // Invalidate cache after deleting
+                _cache.Remove(SkillsCacheKey);
+                _logger.LogInformation("Cache invalidated after deleting skill {SkillId}", id);
+
                 return NoContent();
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error deleting skill {SkillId}", id);
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }

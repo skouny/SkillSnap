@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using SkillSnap.Api.Models;
 
 namespace SkillSnap.Api.Controllers
@@ -10,13 +11,16 @@ namespace SkillSnap.Api.Controllers
     public class ProjectsController : ControllerBase
     {
         private readonly SkillSnapContext _context;
+        private readonly IMemoryCache _cache;
+        private readonly ILogger<ProjectsController> _logger;
+        private const string ProjectsCacheKey = "projects_list";
 
-        public ProjectsController(SkillSnapContext context)
+        public ProjectsController(SkillSnapContext context, IMemoryCache cache, ILogger<ProjectsController> logger)
         {
             _context = context;
-        }
-
-        /// <summary>
+            _cache = cache;
+            _logger = logger;
+        }        /// <summary>
         /// Get all projects with their associated portfolio user
         /// </summary>
         [HttpGet]
@@ -24,18 +28,38 @@ namespace SkillSnap.Api.Controllers
         {
             try
             {
-                var projects = await _context.Projects
-                    .Include(p => p.PortfolioUser)
-                    .ToListAsync();
+                // Try to get from cache
+                if (!_cache.TryGetValue(ProjectsCacheKey, out List<Project>? projects))
+                {
+                    _logger.LogInformation("Cache miss - fetching projects from database");
+                    
+                    // Cache miss - fetch from database with optimized query
+                    projects = await _context.Projects
+                        .Include(p => p.PortfolioUser)
+                        .AsNoTracking() // Optimization: no change tracking needed for read-only queries
+                        .ToListAsync();
+                    
+                    // Set cache with 5 minute expiration
+                    var cacheOptions = new MemoryCacheEntryOptions
+                    {
+                        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
+                    };
+                    
+                    _cache.Set(ProjectsCacheKey, projects, cacheOptions);
+                }
+                else
+                {
+                    _logger.LogInformation("Cache hit - returning cached projects");
+                }
+
                 return Ok(projects);
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error fetching projects");
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
-        }
-
-        /// <summary>
+        }        /// <summary>
         /// Get a specific project by ID
         /// </summary>
         [HttpGet("{id}")]
@@ -45,6 +69,7 @@ namespace SkillSnap.Api.Controllers
             {
                 var project = await _context.Projects
                     .Include(p => p.PortfolioUser)
+                    .AsNoTracking() // Optimization: no change tracking needed
                     .FirstOrDefaultAsync(p => p.Id == id);
 
                 if (project == null)
@@ -56,6 +81,7 @@ namespace SkillSnap.Api.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error fetching project {ProjectId}", id);
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }        /// <summary>
@@ -74,6 +100,7 @@ namespace SkillSnap.Api.Controllers
 
                 // Verify that the PortfolioUser exists
                 var userExists = await _context.PortfolioUsers
+                    .AsNoTracking()
                     .AnyAsync(u => u.Id == project.PortfolioUserId);
 
                 if (!userExists)
@@ -84,10 +111,15 @@ namespace SkillSnap.Api.Controllers
                 _context.Projects.Add(project);
                 await _context.SaveChangesAsync();
 
+                // Invalidate cache after creating
+                _cache.Remove(ProjectsCacheKey);
+                _logger.LogInformation("Cache invalidated after creating project {ProjectId}", project.Id);
+
                 return CreatedAtAction(nameof(GetProject), new { id = project.Id }, project);
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error creating project");
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }        /// <summary>
@@ -122,10 +154,15 @@ namespace SkillSnap.Api.Controllers
 
                 await _context.SaveChangesAsync();
 
+                // Invalidate cache after updating
+                _cache.Remove(ProjectsCacheKey);
+                _logger.LogInformation("Cache invalidated after updating project {ProjectId}", id);
+
                 return NoContent();
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error updating project {ProjectId}", id);
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }        /// <summary>
@@ -146,10 +183,15 @@ namespace SkillSnap.Api.Controllers
                 _context.Projects.Remove(project);
                 await _context.SaveChangesAsync();
 
+                // Invalidate cache after deleting
+                _cache.Remove(ProjectsCacheKey);
+                _logger.LogInformation("Cache invalidated after deleting project {ProjectId}", id);
+
                 return NoContent();
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error deleting project {ProjectId}", id);
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }

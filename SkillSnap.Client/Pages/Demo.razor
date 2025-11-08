@@ -1,11 +1,25 @@
 @page "/demo"
 @inject PortfolioUserService UserService
+@inject UserSessionService UserSession
+@using System.Diagnostics
 @* Demo page to showcase all components *@
 
 <PageTitle>SkillSnap - Demo</PageTitle>
 
 <div class="demo-container">
     <h1>SkillSnap Portfolio Demo</h1>
+    
+    @* Performance Metrics *@
+    @if (loadTime.HasValue)
+    {
+        <div class="performance-metrics">
+            <span class="metric">⚡ Page loaded in <strong>@loadTime.Value ms</strong></span>
+            @if (UserSession.IsAuthenticated)
+            {
+                <span class="metric">👤 Logged in as <strong>@UserSession.UserName</strong></span>
+            }
+        </div>
+    }
     
     @if (isLoading)
     {
@@ -53,9 +67,13 @@
     private PortfolioUser? user;
     private bool isLoading = true;
     private string? errorMessage;
+    private long? loadTime;
+    private Stopwatch stopwatch = new Stopwatch();
 
     protected override async Task OnInitializedAsync()
     {
+        stopwatch.Start();
+        
         try
         {
             user = await UserService.GetFirstUserAsync();
@@ -71,7 +89,10 @@
         }
         finally
         {
+            stopwatch.Stop();
+            loadTime = stopwatch.ElapsedMilliseconds;
             isLoading = false;
+            Console.WriteLine($"Demo page loaded in {loadTime}ms");
         }
     }
 }
@@ -125,13 +146,31 @@
         padding: 0.2rem 0.4rem;
         border-radius: 3px;
         font-size: 0.9em;
-    }
-
-    .error-details {
+    }    .error-details {
         background-color: #f8d7da;
         padding: 1rem;
         border-radius: 4px;
         border-left: 4px solid #dc3545;
         margin: 1rem 0;
+    }
+
+    .performance-metrics {
+        display: flex;
+        justify-content: center;
+        gap: 2rem;
+        padding: 1rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .performance-metrics .metric {
+        font-size: 0.95rem;
+    }
+
+    .performance-metrics strong {
+        font-weight: 700;
     }
 </style>

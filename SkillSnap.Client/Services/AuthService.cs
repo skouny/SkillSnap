@@ -4,11 +4,11 @@ using Microsoft.JSInterop;
 using SkillSnap.Client.Models;
 
 namespace SkillSnap.Client.Services
-{
-    public class AuthService
+{    public class AuthService
     {
         private readonly HttpClient _httpClient;
         private readonly IJSRuntime _jsRuntime;
+        private readonly UserSessionService _userSession;
         private const string ApiBaseUrl = "https://localhost:7129/api/auth";
         private const string TokenKey = "authToken";
 
@@ -17,10 +17,11 @@ namespace SkillSnap.Client.Services
         public string? CurrentUserEmail { get; private set; }
         public string? CurrentUserName { get; private set; }
 
-        public AuthService(HttpClient httpClient, IJSRuntime jsRuntime)
+        public AuthService(HttpClient httpClient, IJSRuntime jsRuntime, UserSessionService userSession)
         {
             _httpClient = httpClient;
             _jsRuntime = jsRuntime;
+            _userSession = userSession;
         }
 
         public async Task InitializeAsync()
@@ -37,9 +38,7 @@ namespace SkillSnap.Client.Services
             try
             {
                 Console.WriteLine($"Attempting login to: {ApiBaseUrl}/login");
-                var response = await _httpClient.PostAsJsonAsync($"{ApiBaseUrl}/login", loginRequest);
-
-                if (response.IsSuccessStatusCode)
+                var response = await _httpClient.PostAsJsonAsync($"{ApiBaseUrl}/login", loginRequest);                if (response.IsSuccessStatusCode)
                 {
                     var loginResponse = await response.Content.ReadFromJsonAsync<LoginResponse>();
                     if (loginResponse != null)
@@ -49,6 +48,10 @@ namespace SkillSnap.Client.Services
                         CurrentUserEmail = loginResponse.Email;
                         CurrentUserName = loginResponse.FullName;
                         IsAuthenticated = true;
+                        
+                        // Update user session state
+                        _userSession.SetUser(loginResponse.Email, loginResponse.FullName, loginResponse.Email);
+                        
                         NotifyAuthStateChanged();
                         Console.WriteLine($"Login successful for user: {loginResponse.Email}");
                         return (true, null);
@@ -100,19 +103,19 @@ namespace SkillSnap.Client.Services
                 Console.WriteLine($"Registration error: {errorMsg}");
                 return (false, errorMsg);
             }
-        }
-
-        public async Task LogoutAsync()
+        }        public async Task LogoutAsync()
         {
             await RemoveTokenAsync();
             _httpClient.DefaultRequestHeaders.Authorization = null;
             IsAuthenticated = false;
             CurrentUserEmail = null;
             CurrentUserName = null;
+            
+            // Clear user session state
+            _userSession.ClearUser();
+            
             NotifyAuthStateChanged();
-        }
-
-        private async Task LoadUserInfo()
+        }        private async Task LoadUserInfo()
         {
             try
             {
@@ -121,6 +124,9 @@ namespace SkillSnap.Client.Services
                 {
                     CurrentUserEmail = response.Email;
                     CurrentUserName = response.FullName;
+                    
+                    // Update user session state
+                    _userSession.SetUser(response.Email, response.FullName, response.Email);
                 }
             }
             catch (Exception ex)

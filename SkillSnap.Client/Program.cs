@@ -11,6 +11,7 @@ builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.
 
 // Register services
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<UserSessionService>(); // State management for user session
 builder.Services.AddScoped<PortfolioUserService>();
 builder.Services.AddScoped<ProjectService>();
 builder.Services.AddScoped<SkillService>();
