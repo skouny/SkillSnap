@@ -10,6 +10,7 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 
 // Register services
+builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<PortfolioUserService>();
 builder.Services.AddScoped<ProjectService>();
 builder.Services.AddScoped<SkillService>();

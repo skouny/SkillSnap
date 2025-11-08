@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using SkillSnap.Api.Models;
 
@@ -57,12 +58,11 @@ namespace SkillSnap.Api.Controllers
             {
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
-        }
-
-        /// <summary>
+        }        /// <summary>
         /// Create a new project
         /// </summary>
         [HttpPost]
+        [Authorize]
         public async Task<ActionResult<Project>> CreateProject(Project project)
         {
             try
@@ -90,12 +90,11 @@ namespace SkillSnap.Api.Controllers
             {
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
-        }
-
-        /// <summary>
+        }        /// <summary>
         /// Update an existing project
         /// </summary>
         [HttpPut("{id}")]
+        [Authorize]
         public async Task<IActionResult> UpdateProject(int id, Project project)
         {
             try
@@ -129,12 +128,11 @@ namespace SkillSnap.Api.Controllers
             {
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
-        }
-
-        /// <summary>
+        }        /// <summary>
         /// Delete a project
         /// </summary>
         [HttpDelete("{id}")]
+        [Authorize]
         public async Task<IActionResult> DeleteProject(int id)
         {
             try

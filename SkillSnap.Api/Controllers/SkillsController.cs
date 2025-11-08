@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using SkillSnap.Api.Models;
 
@@ -63,6 +64,7 @@ namespace SkillSnap.Api.Controllers
         /// Create a new skill
         /// </summary>
         [HttpPost]
+        [Authorize]
         public async Task<ActionResult<Skill>> CreateSkill(Skill skill)
         {
             try
@@ -96,6 +98,7 @@ namespace SkillSnap.Api.Controllers
         /// Update an existing skill
         /// </summary>
         [HttpPut("{id}")]
+        [Authorize]
         public async Task<IActionResult> UpdateSkill(int id, Skill skill)
         {
             try
@@ -134,6 +137,7 @@ namespace SkillSnap.Api.Controllers
         /// Delete a skill
         /// </summary>
         [HttpDelete("{id}")]
+        [Authorize]
         public async Task<IActionResult> DeleteSkill(int id)
         {
             try
