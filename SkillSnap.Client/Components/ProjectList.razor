@@ -14,14 +14,21 @@
     }
     else
     {
-        <div class="projects-grid">
-            @foreach (var project in projects)
+        <div class="projects-grid">            @foreach (var project in projects)
             {
                 <div class="project-card">
-                    <img src="@project.ImageUrl" alt="@project.Title" />
+                    <img src="@(string.IsNullOrEmpty(project.ImageUrl) ? "https://via.placeholder.com/400x250/667eea/ffffff?text=Project" : project.ImageUrl)" 
+                         alt="@project.Title" 
+                         onerror="this.src='https://via.placeholder.com/400x250/667eea/ffffff?text=No+Image'" />
                     <div class="project-content">
                         <h4>@project.Title</h4>
                         <p>@project.Description</p>
+                        @if (project.PortfolioUser != null)
+                        {
+                            <div class="project-owner">
+                                <small>👤 @project.PortfolioUser.Name</small>
+                            </div>
+                        }
                     </div>
                 </div>
             }
@@ -97,9 +104,17 @@
         margin: 0 0 0.5rem 0;
         color: #333;
     }    .project-content p {
-        margin: 0;
+        margin: 0 0 0.5rem 0;
         color: #666;
         line-height: 1.5;
+    }
+
+    .project-owner {
+        margin-top: 0.75rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid #eee;
+        color: #888;
+        font-size: 0.9rem;
     }
 
     .loading-message, .no-data-message {

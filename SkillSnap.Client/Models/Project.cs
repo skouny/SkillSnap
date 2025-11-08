@@ -7,5 +7,6 @@ namespace SkillSnap.Client.Models
         public string Description { get; set; } = string.Empty;
         public string ImageUrl { get; set; } = string.Empty;
         public int PortfolioUserId { get; set; }
+        public PortfolioUser? PortfolioUser { get; set; }
     }
 }

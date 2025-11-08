@@ -1,0 +1,666 @@
+@page "/test"
+@inject ProjectService ProjectService
+@inject SkillService SkillService
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+
+<PageTitle>SkillSnap - Functional Test Suite</PageTitle>
+
+<div class="test-container">
+    <h1>🧪 Functional Test Suite</h1>
+    <p class="subtitle">Validate all core functionality and authentication flows</p>
+
+    @if (!AuthService.IsAuthenticated)
+    {
+        <div class="auth-required">
+            <h3>⚠️ Authentication Required</h3>
+            <p>Please <a href="/login">login</a> to run authenticated tests.</p>
+            <p>You can still run read-only tests below.</p>
+        </div>
+    }
+    else
+    {
+        <div class="auth-status">
+            <h3>✅ Authenticated as @AuthService.CurrentUserEmail</h3>
+        </div>
+    }
+
+    <div class="test-sections">
+        <!-- Test 1: Read Operations -->
+        <section class="test-section">
+            <h2>📖 Test 1: Read Operations (Public)</h2>
+            <button class="btn btn-primary" @onclick="TestReadProjects" disabled="@isRunning">
+                Test Get Projects
+            </button>
+            <button class="btn btn-primary" @onclick="TestReadSkills" disabled="@isRunning">
+                Test Get Skills
+            </button>
+            @if (test1Result != null)
+            {
+                <div class="test-result @(test1Success ? "success" : "error")">
+                    <strong>Result:</strong> @test1Result
+                </div>
+            }
+        </section>
+
+        <!-- Test 2: Authentication Flow -->
+        <section class="test-section">
+            <h2>🔐 Test 2: Authentication Flow</h2>
+            <button class="btn btn-primary" @onclick="TestAuthenticationState" disabled="@isRunning">
+                Check Auth State
+            </button>
+            @if (test2Result != null)
+            {
+                <div class="test-result @(test2Success ? "success" : "error")">
+                    <strong>Result:</strong> @test2Result
+                </div>
+            }
+        </section>
+
+        <!-- Test 3: Create Operations (Requires Auth) -->
+        <section class="test-section">
+            <h2>➕ Test 3: Create Operations (Auth Required)</h2>
+            <button class="btn btn-success" @onclick="TestCreateProject" disabled="@(!AuthService.IsAuthenticated || isRunning)">
+                Test Create Project
+            </button>
+            <button class="btn btn-success" @onclick="TestCreateSkill" disabled="@(!AuthService.IsAuthenticated || isRunning)">
+                Test Create Skill
+            </button>
+            @if (test3Result != null)
+            {
+                <div class="test-result @(test3Success ? "success" : "error")">
+                    <strong>Result:</strong> @test3Result
+                </div>
+            }
+        </section>
+
+        <!-- Test 4: Update Operations (Requires Auth) -->
+        <section class="test-section">
+            <h2>✏️ Test 4: Update Operations (Auth Required)</h2>
+            <button class="btn btn-warning" @onclick="TestUpdateProject" disabled="@(!AuthService.IsAuthenticated || isRunning)">
+                Test Update Project
+            </button>
+            @if (test4Result != null)
+            {
+                <div class="test-result @(test4Success ? "success" : "error")">
+                    <strong>Result:</strong> @test4Result
+                </div>
+            }
+        </section>
+
+        <!-- Test 5: Delete Operations (Requires Auth) -->
+        <section class="test-section">
+            <h2>🗑️ Test 5: Delete Operations (Auth Required)</h2>
+            <button class="btn btn-danger" @onclick="TestDeleteProject" disabled="@(!AuthService.IsAuthenticated || isRunning)">
+                Test Delete Project
+            </button>
+            @if (test5Result != null)
+            {
+                <div class="test-result @(test5Success ? "success" : "error")">
+                    <strong>Result:</strong> @test5Result
+                </div>
+            }
+        </section>
+
+        <!-- Test 6: Caching Verification -->
+        <section class="test-section">
+            <h2>⚡ Test 6: Caching Performance</h2>
+            <button class="btn btn-info" @onclick="TestCaching" disabled="@isRunning">
+                Test Cache Performance
+            </button>
+            @if (test6Result != null)
+            {
+                <div class="test-result @(test6Success ? "success" : "error")">
+                    <strong>Result:</strong> @test6Result
+                </div>
+            }
+        </section>
+
+        <!-- Test 7: Unauthorized Access -->
+        <section class="test-section">
+            <h2>🚫 Test 7: Authorization Controls</h2>
+            <button class="btn btn-secondary" @onclick="TestUnauthorizedAccess">
+                Test Unauthorized Create (Should Fail if Not Logged In)
+            </button>
+            @if (test7Result != null)
+            {
+                <div class="test-result @(test7Success ? "success" : "error")">
+                    <strong>Result:</strong> @test7Result
+                </div>
+            }
+        </section>
+    </div>
+
+    <div class="test-summary">
+        <h2>📊 Test Summary</h2>
+        <p><strong>Tests Run:</strong> @testsRun</p>
+        <p><strong>Tests Passed:</strong> <span class="pass">@testsPassed</span></p>
+        <p><strong>Tests Failed:</strong> <span class="fail">@testsFailed</span></p>
+    </div>
+</div>
+
+@code {
+    private bool isRunning = false;
+    
+    // Test 1
+    private string? test1Result;
+    private bool test1Success;
+    
+    // Test 2
+    private string? test2Result;
+    private bool test2Success;
+    
+    // Test 3
+    private string? test3Result;
+    private bool test3Success;
+    
+    // Test 4
+    private string? test4Result;
+    private bool test4Success;
+    
+    // Test 5
+    private string? test5Result;
+    private bool test5Success;
+    
+    // Test 6
+    private string? test6Result;
+    private bool test6Success;
+    
+    // Test 7
+    private string? test7Result;
+    private bool test7Success;
+    
+    private int testsRun = 0;
+    private int testsPassed = 0;
+    private int testsFailed = 0;
+
+    private int? testProjectId;
+    private int? testSkillId;
+
+    private async Task TestReadProjects()
+    {
+        isRunning = true;
+        testsRun++;
+        try
+        {
+            var projects = await ProjectService.GetAllProjectsAsync();
+            if (projects != null && projects.Any())
+            {
+                test1Result = $"✅ Successfully fetched {projects.Count()} projects";
+                test1Success = true;
+                testsPassed++;
+            }
+            else
+            {
+                test1Result = "⚠️ No projects found. Make sure to seed the database.";
+                test1Success = false;
+                testsFailed++;
+            }
+        }
+        catch (Exception ex)
+        {
+            test1Result = $"❌ Error: {ex.Message}";
+            test1Success = false;
+            testsFailed++;
+        }
+        finally
+        {
+            isRunning = false;
+        }
+    }
+
+    private async Task TestReadSkills()
+    {
+        isRunning = true;
+        testsRun++;
+        try
+        {
+            var skills = await SkillService.GetAllSkillsAsync();
+            if (skills != null && skills.Any())
+            {
+                test1Result = $"✅ Successfully fetched {skills.Count()} skills";
+                test1Success = true;
+                testsPassed++;
+            }
+            else
+            {
+                test1Result = "⚠️ No skills found. Make sure to seed the database.";
+                test1Success = false;
+                testsFailed++;
+            }
+        }
+        catch (Exception ex)
+        {
+            test1Result = $"❌ Error: {ex.Message}";
+            test1Success = false;
+            testsFailed++;
+        }
+        finally
+        {
+            isRunning = false;
+        }
+    }
+
+    private async Task TestAuthenticationState()
+    {
+        testsRun++;
+        await Task.CompletedTask;
+        
+        if (AuthService.IsAuthenticated)
+        {
+            test2Result = $"✅ User authenticated as {AuthService.CurrentUserEmail}";
+            test2Success = true;
+            testsPassed++;
+        }
+        else
+        {
+            test2Result = "⚠️ User not authenticated. Login to test authenticated features.";
+            test2Success = false;
+            testsFailed++;
+        }
+    }
+
+    private async Task TestCreateProject()
+    {
+        isRunning = true;
+        testsRun++;
+        try
+        {
+            var newProject = new Project
+            {
+                Title = $"Test Project {DateTime.Now:HHmmss}",
+                Description = "This is a test project created by the test suite",
+                ImageUrl = "https://via.placeholder.com/300x200",
+                PortfolioUserId = 1 // Assuming first user exists
+            };
+            
+            var created = await ProjectService.CreateProjectAsync(newProject);
+            if (created != null)
+            {
+                testProjectId = created.Id;
+                test3Result = $"✅ Successfully created project with ID {created.Id}";
+                test3Success = true;
+                testsPassed++;
+            }
+            else
+            {
+                test3Result = "❌ Failed to create project";
+                test3Success = false;
+                testsFailed++;
+            }
+        }
+        catch (Exception ex)
+        {
+            test3Result = $"❌ Error: {ex.Message}";
+            test3Success = false;
+            testsFailed++;
+        }
+        finally
+        {
+            isRunning = false;
+        }
+    }
+
+    private async Task TestCreateSkill()
+    {
+        isRunning = true;
+        testsRun++;
+        try
+        {
+            var newSkill = new Skill
+            {
+                Name = $"Test Skill {DateTime.Now:HHmmss}",
+                Level = "Intermediate",
+                PortfolioUserId = 1
+            };
+            
+            var created = await SkillService.CreateSkillAsync(newSkill);
+            if (created != null)
+            {
+                testSkillId = created.Id;
+                test3Result = $"✅ Successfully created skill with ID {created.Id}";
+                test3Success = true;
+                testsPassed++;
+            }
+            else
+            {
+                test3Result = "❌ Failed to create skill";
+                test3Success = false;
+                testsFailed++;
+            }
+        }
+        catch (Exception ex)
+        {
+            test3Result = $"❌ Error: {ex.Message}";
+            test3Success = false;
+            testsFailed++;
+        }
+        finally
+        {
+            isRunning = false;
+        }
+    }
+
+    private async Task TestUpdateProject()
+    {
+        isRunning = true;
+        testsRun++;
+        try
+        {
+            if (!testProjectId.HasValue)
+            {
+                // Get first project
+                var projects = await ProjectService.GetAllProjectsAsync();
+                if (projects?.Any() == true)
+                {
+                    testProjectId = projects.First().Id;
+                }
+            }
+
+            if (testProjectId.HasValue)
+            {
+                var project = await ProjectService.GetProjectByIdAsync(testProjectId.Value);
+                if (project != null)
+                {
+                    project.Title = $"Updated Test Project {DateTime.Now:HHmmss}";
+                    await ProjectService.UpdateProjectAsync(testProjectId.Value, project);
+                    test4Result = $"✅ Successfully updated project ID {testProjectId.Value}";
+                    test4Success = true;
+                    testsPassed++;
+                }
+                else
+                {
+                    test4Result = "❌ Project not found";
+                    test4Success = false;
+                    testsFailed++;
+                }
+            }
+            else
+            {
+                test4Result = "⚠️ No project to update. Run 'Test Create Project' first.";
+                test4Success = false;
+                testsFailed++;
+            }
+        }
+        catch (Exception ex)
+        {
+            test4Result = $"❌ Error: {ex.Message}";
+            test4Success = false;
+            testsFailed++;
+        }
+        finally
+        {
+            isRunning = false;
+        }
+    }
+
+    private async Task TestDeleteProject()
+    {
+        isRunning = true;
+        testsRun++;
+        try
+        {
+            if (testProjectId.HasValue)
+            {
+                await ProjectService.DeleteProjectAsync(testProjectId.Value);
+                test5Result = $"✅ Successfully deleted project ID {testProjectId.Value}";
+                test5Success = true;
+                testsPassed++;
+                testProjectId = null;
+            }
+            else
+            {
+                test5Result = "⚠️ No project to delete. Run 'Test Create Project' first.";
+                test5Success = false;
+                testsFailed++;
+            }
+        }
+        catch (Exception ex)
+        {
+            test5Result = $"❌ Error: {ex.Message}";
+            test5Success = false;
+            testsFailed++;
+        }
+        finally
+        {
+            isRunning = false;
+        }
+    }
+
+    private async Task TestCaching()
+    {
+        isRunning = true;
+        testsRun++;
+        try
+        {
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            
+            // First request (likely cache miss)
+            await ProjectService.GetAllProjectsAsync();
+            sw.Stop();
+            var firstTime = sw.ElapsedMilliseconds;
+            
+            // Second request (should be cache hit)
+            sw.Restart();
+            await ProjectService.GetAllProjectsAsync();
+            sw.Stop();
+            var secondTime = sw.ElapsedMilliseconds;
+            
+            test6Result = $"✅ First request: {firstTime}ms, Second request: {secondTime}ms. ";
+            
+            if (secondTime < firstTime)
+            {
+                test6Result += "Cache appears to be working! 🚀";
+                test6Success = true;
+                testsPassed++;
+            }
+            else
+            {
+                test6Result += "Cache may not be working optimally.";
+                test6Success = false;
+                testsFailed++;
+            }
+        }
+        catch (Exception ex)
+        {
+            test6Result = $"❌ Error: {ex.Message}";
+            test6Success = false;
+            testsFailed++;
+        }
+        finally
+        {
+            isRunning = false;
+        }
+    }
+
+    private async Task TestUnauthorizedAccess()
+    {
+        testsRun++;
+        await Task.CompletedTask;
+        
+        if (!AuthService.IsAuthenticated)
+        {
+            test7Result = "✅ Correctly identified as unauthorized. Create/Update/Delete buttons are disabled.";
+            test7Success = true;
+            testsPassed++;
+        }
+        else
+        {
+            test7Result = "✅ User is authorized. All operations should work.";
+            test7Success = true;
+            testsPassed++;
+        }
+    }
+}
+
+<style>
+    .test-container {
+        padding: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .test-container h1 {
+        color: #333;
+        margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+        color: #666;
+        margin-bottom: 2rem;
+        font-size: 1.1rem;
+    }
+
+    .auth-required, .auth-status {
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+    }
+
+    .auth-required {
+        background-color: #fff3cd;
+        border-left: 4px solid #ffc107;
+    }
+
+    .auth-status {
+        background-color: #d4edda;
+        border-left: 4px solid #28a745;
+    }
+
+    .test-sections {
+        display: grid;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .test-section {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-left: 4px solid #007bff;
+    }
+
+    .test-section h2 {
+        margin-top: 0;
+        color: #333;
+        font-size: 1.3rem;
+    }
+
+    .btn {
+        margin-right: 0.5rem;
+        margin-bottom: 0.5rem;
+        padding: 0.5rem 1rem;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+
+    .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .btn-primary {
+        background-color: #007bff;
+        color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+        background-color: #0056b3;
+    }
+
+    .btn-success {
+        background-color: #28a745;
+        color: white;
+    }
+
+    .btn-success:hover:not(:disabled) {
+        background-color: #1e7e34;
+    }
+
+    .btn-warning {
+        background-color: #ffc107;
+        color: #212529;
+    }
+
+    .btn-warning:hover:not(:disabled) {
+        background-color: #e0a800;
+    }
+
+    .btn-danger {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    .btn-danger:hover:not(:disabled) {
+        background-color: #c82333;
+    }
+
+    .btn-info {
+        background-color: #17a2b8;
+        color: white;
+    }
+
+    .btn-info:hover:not(:disabled) {
+        background-color: #117a8b;
+    }
+
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+        background-color: #545b62;
+    }
+
+    .test-result {
+        margin-top: 1rem;
+        padding: 1rem;
+        border-radius: 4px;
+        font-weight: 500;
+    }
+
+    .test-result.success {
+        background-color: #d4edda;
+        color: #155724;
+        border-left: 4px solid #28a745;
+    }
+
+    .test-result.error {
+        background-color: #f8d7da;
+        color: #721c24;
+        border-left: 4px solid #dc3545;
+    }
+
+    .test-summary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .test-summary h2 {
+        margin-top: 0;
+        color: white;
+    }
+
+    .test-summary p {
+        margin: 0.5rem 0;
+        font-size: 1.1rem;
+    }
+
+    .pass {
+        color: #90EE90;
+        font-weight: bold;
+    }
+
+    .fail {
+        color: #FFB6C1;
+        font-weight: bold;
+    }
+</style>

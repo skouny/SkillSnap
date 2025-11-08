@@ -2,7 +2,9 @@
 
 <div class="profile-card">
     <div class="profile-image">
-        <img src="@ProfileImageUrl" alt="@Name" />
+        <img src="@(string.IsNullOrEmpty(ProfileImageUrl) ? "https://via.placeholder.com/150/667eea/ffffff?text=" + Name[0] : ProfileImageUrl)" 
+             alt="@Name" 
+             onerror="this.src='https://via.placeholder.com/150/667eea/ffffff?text=User'" />
     </div>
     <div class="profile-info">
         <h2>@Name</h2>
