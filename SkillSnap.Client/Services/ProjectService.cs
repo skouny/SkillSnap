@@ -5,12 +5,11 @@ namespace SkillSnap.Client.Services
 {
     /// <summary>
     /// Service for managing project data through the API
-    /// Handles CRUD operations for projects with proper error handling
-    /// </summary>
+    /// Handles CRUD operations for projects with proper error handling    /// </summary>
     public class ProjectService
     {
         private readonly HttpClient _httpClient;
-        private const string ApiBaseUrl = "https://localhost:7129/api/projects";
+        private const string ApiBaseUrl = "http://localhost:5064/api/projects";
 
         public ProjectService(HttpClient httpClient)
         {

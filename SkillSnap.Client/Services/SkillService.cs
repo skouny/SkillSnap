@@ -5,12 +5,11 @@ namespace SkillSnap.Client.Services
 {
     /// <summary>
     /// Service for managing skill data through the API
-    /// Handles CRUD operations for skills with proper error handling
-    /// </summary>
+    /// Handles CRUD operations for skills with proper error handling    /// </summary>
     public class SkillService
     {
         private readonly HttpClient _httpClient;
-        private const string ApiBaseUrl = "https://localhost:7129/api/skills";
+        private const string ApiBaseUrl = "http://localhost:5064/api/skills";
 
         public SkillService(HttpClient httpClient)
         {

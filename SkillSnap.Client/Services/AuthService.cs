@@ -9,7 +9,7 @@ namespace SkillSnap.Client.Services
         private readonly HttpClient _httpClient;
         private readonly IJSRuntime _jsRuntime;
         private readonly UserSessionService _userSession;
-        private const string ApiBaseUrl = "https://localhost:7129/api/auth";
+        private const string ApiBaseUrl = "http://localhost:5064/api/auth";
         private const string TokenKey = "authToken";
 
         public event Action? OnAuthStateChanged;

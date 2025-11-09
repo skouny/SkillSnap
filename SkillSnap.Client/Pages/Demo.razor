@@ -8,7 +8,7 @@
 
 <div class="demo-container">
     <h1>SkillSnap Portfolio Demo</h1>
-    
+
     @* Performance Metrics *@
     @if (loadTime.HasValue)
     {
@@ -20,7 +20,7 @@
             }
         </div>
     }
-    
+
     @if (isLoading)
     {
         <div class="loading-section">
@@ -30,9 +30,7 @@
     else if (user != null)
     {
         <section class="demo-section">
-            <ProfileCard Name="@user.Name" 
-                         Bio="@user.Bio" 
-                         ProfileImageUrl="@user.ProfileImageUrl" />
+            <ProfileCard Name="@user.Name" Bio="@user.Bio" ProfileImageUrl="@user.ProfileImageUrl" />
         </section>
 
         <section class="demo-section">
@@ -42,7 +40,8 @@
         <section class="demo-section">
             <SkillTags />
         </section>
-    }    else
+    }
+    else
     {
         <div class="error-section">
             <p><strong>No portfolio data available.</strong></p>
@@ -53,8 +52,8 @@
             <div class="troubleshooting">
                 <h4>Troubleshooting Steps:</h4>
                 <ol>
-                    <li>Make sure the API is running on https://localhost:7129</li>
-                    <li>Seed the database by running: <code>POST https://localhost:7129/api/seed</code></li>
+                    <li>Make sure the API is running on http://localhost:5064</li>
+                    <li>Seed the database by running: <code>POST http://localhost:5064/api/seed</code></li>
                     <li>Check the browser console (F12) for detailed error messages</li>
                     <li>Verify CORS is configured correctly in the API</li>
                 </ol>
@@ -73,7 +72,7 @@
     protected override async Task OnInitializedAsync()
     {
         stopwatch.Start();
-        
+
         try
         {
             user = await UserService.GetFirstUserAsync();
@@ -109,15 +108,20 @@
         color: #333;
         margin-bottom: 2rem;
         font-size: 2.5rem;
-    }    .demo-section {
+    }
+
+    .demo-section {
         margin-bottom: 3rem;
     }
 
-    .loading-section, .error-section {
+    .loading-section,
+    .error-section {
         text-align: center;
         padding: 3rem;
         color: #666;
-    }    .error-section .hint {
+    }
+
+    .error-section .hint {
         font-family: monospace;
         background-color: #f8f9fa;
         padding: 1rem;
@@ -146,7 +150,9 @@
         padding: 0.2rem 0.4rem;
         border-radius: 3px;
         font-size: 0.9em;
-    }    .error-details {
+    }
+
+    .error-details {
         background-color: #f8d7da;
         padding: 1rem;
         border-radius: 4px;
@@ -163,7 +169,7 @@
         color: white;
         border-radius: 8px;
         margin-bottom: 2rem;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
 
     .performance-metrics .metric {

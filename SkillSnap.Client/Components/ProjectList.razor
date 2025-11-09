@@ -13,13 +13,12 @@
         <p class="no-data-message">No projects found. Add some projects to get started!</p>
     }
     else
-    {
-        <div class="projects-grid">            @foreach (var project in projects)
+    {        <div class="projects-grid">            @foreach (var project in projects)
             {
                 <div class="project-card">
-                    <img src="@(string.IsNullOrEmpty(project.ImageUrl) ? "https://via.placeholder.com/400x250/667eea/ffffff?text=Project" : project.ImageUrl)" 
+                    <img src="@GetProjectImageUrl(project)" 
                          alt="@project.Title" 
-                         onerror="this.src='https://via.placeholder.com/400x250/667eea/ffffff?text=No+Image'" />
+                         onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22250%22%3E%3Crect fill=%22%23667eea%22 width=%22400%22 height=%22250%22/%3E%3Ctext fill=%22%23ffffff%22 font-family=%22Arial%22 font-size=%2240%22 x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22%3ENo Image%3C/text%3E%3C/svg%3E'" />
                     <div class="project-content">
                         <h4>@project.Title</h4>
                         <p>@project.Description</p>
@@ -55,6 +54,14 @@
         {
             isLoading = false;
         }
+    }
+
+    private string GetProjectImageUrl(Project project)
+    {
+        if (!string.IsNullOrEmpty(project.ImageUrl))
+            return project.ImageUrl;
+        
+        return "data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22250%22%3E%3Crect fill=%22%23667eea%22 width=%22400%22 height=%22250%22/%3E%3Ctext fill=%22%23ffffff%22 font-family=%22Arial%22 font-size=%2240%22 x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22%3EProject%3C/text%3E%3C/svg%3E";
     }
 }
 

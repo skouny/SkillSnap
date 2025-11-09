@@ -5,7 +5,7 @@ namespace SkillSnap.Client.Services
 {    public class PortfolioUserService
     {
         private readonly HttpClient _httpClient;
-        private const string ApiBaseUrl = "https://localhost:7129/api/portfoliousers";
+        private const string ApiBaseUrl = "http://localhost:5064/api/portfoliousers";
 
         public PortfolioUserService(HttpClient httpClient)
         {
